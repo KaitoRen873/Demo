@@ -1,0 +1,2777 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="DemoPortal — User Service & Request Portal (DEMO / TEST ENVIRONMENT)">
+<title>DemoPortal — User Service &amp; Request Portal</title>
+
+<script>
+  /* Apply saved theme before first paint */
+  (function () {
+    try {
+      var t = localStorage.getItem("demo.theme");
+      var dark = t ? t === "dark"
+                   : window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    } catch (e) {}
+  })();
+</script>
+
+<style>
+/* ============================================================
+   1. DESIGN TOKENS
+   ============================================================ */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg:            #F8FAFC;
+  --surface:       #FFFFFF;
+  --surface-2:     #F1F5F9;
+  --surface-3:     #E2E8F0;
+  --text:          #0F172A;
+  --muted:         #64748B;
+  --border:        #E2E8F0;
+  --border-strong: #CBD5E1;
+  --primary:       #2563EB;
+  --primary-2:     #3B82F6;
+  --primary-ink:   #1D4ED8;
+  --primary-soft:  rgba(37,99,235,.09);
+  --primary-ring:  rgba(37,99,235,.35);
+  --success:       #16A34A;
+  --success-soft:  rgba(22,163,74,.10);
+  --warning:       #D97706;
+  --warning-soft:  rgba(217,119,6,.10);
+  --danger:        #DC2626;
+  --danger-soft:   rgba(220,38,38,.10);
+  --shadow-xs:     0 1px 2px rgba(15,23,42,.05);
+  --shadow-sm:     0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:     0 10px 26px rgba(15,23,42,.09);
+  --shadow-lg:     0 26px 70px rgba(15,23,42,.20);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:            #0B1026;
+  --surface:       #111A35;
+  --surface-2:     #16203F;
+  --surface-3:     #1E2A4D;
+  --text:          #F8FAFC;
+  --muted:         #A7B3CA;
+  --border:        #263457;
+  --border-strong: #33477A;
+  --primary:       #3B82F6;
+  --primary-2:     #60A5FA;
+  --primary-ink:   #BFDBFE;
+  --primary-soft:  rgba(59,130,246,.15);
+  --primary-ring:  rgba(96,165,250,.42);
+  --success:       #22C55E;
+  --success-soft:  rgba(34,197,94,.15);
+  --warning:       #F59E0B;
+  --warning-soft:  rgba(245,158,11,.15);
+  --danger:        #F87171;
+  --danger-soft:   rgba(248,113,113,.15);
+  --shadow-xs:     0 1px 2px rgba(2,6,23,.4);
+  --shadow-sm:     0 1px 3px rgba(2,6,23,.45);
+  --shadow-md:     0 12px 30px rgba(2,6,23,.5);
+  --shadow-lg:     0 30px 80px rgba(2,6,23,.65);
+}
+
+/* ============================================================
+   2. RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  min-height: 100vh;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color .25s ease, color .25s ease;
+}
+body.modal-open { overflow: hidden; }
+
+img, svg { display: block; max-width: 100%; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; padding: 0; }
+
+h1, h2, h3, h4 { line-height: 1.25; letter-spacing: -0.02em; font-weight: 800; }
+
+code, pre, kbd { font-family: "Consolas", ui-monospace, "SF Mono", "Courier New", monospace; }
+code {
+  font-size: .88em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--primary-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* ============================================================
+   3. UTILITIES
+   ============================================================ */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+.icon {
+  width: 18px; height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.skip-link {
+  position: fixed;
+  left: 16px; top: -80px;
+  z-index: 300;
+  background: var(--primary);
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 10px;
+  transition: top .2s ease;
+}
+.skip-link:focus { top: 16px; }
+
+.hidden { display: none !important; }
+
+/* ============================================================
+   4. DEMO BANNER
+   ============================================================ */
+.demo-banner {
+  background: linear-gradient(90deg, var(--warning), #B45309);
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 8px 16px;
+}
+.demo-banner strong { font-weight: 800; }
+.demo-banner span { font-weight: 500; opacity: .9; text-transform: none; letter-spacing: 0; }
+
+/* ============================================================
+   5. HEADER / NAV
+   ============================================================ */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+}
+@supports not (backdrop-filter: blur(4px)) {
+  .app-header { background: var(--bg); }
+}
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-right: auto;
+  border-radius: 12px;
+}
+.brand-mark {
+  width: 40px; height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary-2), var(--primary));
+  box-shadow: 0 6px 16px rgba(37,99,235,.32);
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+.brand-text strong { font-size: 1rem; }
+.brand-text small { color: var(--muted); font-size: .74rem; font-weight: 600; }
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+.nav a {
+  display: block;
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color .16s ease, background .16s ease;
+  white-space: nowrap;
+}
+.nav a:hover,
+.nav a:focus-visible { color: var(--text); background: var(--surface-2); }
+.nav a.is-active { color: var(--primary-ink); background: var(--primary-soft); }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.icon-btn {
+  width: 42px; height: 42px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  transition: color .16s ease, border-color .16s ease, background .16s ease;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--border-strong); }
+.menu-btn { display: none; }
+
+/* Help button — accent-tinted so it stands out next to the theme toggle */
+.icon-btn.help-btn {
+  color: var(--primary-ink);
+  background: var(--primary-soft);
+  border-color: var(--primary-ring);
+  text-decoration: none;
+}
+.icon-btn.help-btn:hover {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* Optional wider version with a label — shown on tablet and up */
+.help-btn-lg {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--primary-ring);
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  font-size: .84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+.help-btn-lg:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.help-btn-lg .icon { width: 16px; height: 16px; }
+
+@media (min-width: 900px) {
+  .help-btn-lg { display: inline-flex; }
+  .icon-btn.help-btn { display: none; } /* hide the icon version on desktop */
+}
+
+/* ============================================================
+   6. MAIN & VIEWS
+   ============================================================ */
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 22px 60px;
+}
+.view { animation: fade-in .22s ease both; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.page-head { margin-bottom: 24px; }
+.page-head h1 { font-size: clamp(1.4rem, 3vw, 1.85rem); margin-bottom: 6px; }
+.page-head p { color: var(--muted); font-size: .95rem; }
+
+/* ============================================================
+   7. CARDS
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+.card + .card { margin-top: 16px; }
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.card-head h2 { font-size: 1.1rem; }
+
+/* Auth card centred */
+.auth-wrap {
+  max-width: 460px;
+  margin: 24px auto;
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+}
+.auth-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+  letter-spacing: -.02em;
+}
+.auth-card .sub {
+  color: var(--muted);
+  font-size: .9rem;
+  margin-bottom: 24px;
+}
+.auth-foot {
+  text-align: center;
+  margin-top: 20px;
+  font-size: .88rem;
+  color: var(--muted);
+}
+.auth-foot a {
+  color: var(--primary-ink);
+  font-weight: 700;
+}
+.auth-foot a:hover { text-decoration: underline; }
+
+/* ============================================================
+   8. FORMS
+   ============================================================ */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.field label {
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.field label .req { color: var(--danger); margin-left: 2px; }
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  font-size: .92rem;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.field textarea { min-height: 110px; resize: vertical; line-height: 1.55; }
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.field .hint { font-size: .78rem; color: var(--muted); }
+.field .err {
+  font-size: .78rem;
+  color: var(--danger);
+  font-weight: 600;
+  min-height: 1em;
+}
+.field.invalid input,
+.field.invalid select,
+.field.invalid textarea {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+/* ============================================================
+   9. BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 11px;
+  font-size: .88rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: transform .14s ease, background .14s ease,
+              border-color .14s ease, box-shadow .14s ease;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-2), var(--primary));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(37,99,235,.28);
+}
+.btn-primary:hover { box-shadow: 0 12px 26px rgba(37,99,235,.36); }
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover { border-color: var(--primary-ring); background: var(--primary-soft); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+  font-size: .84rem;
+  min-height: 38px;
+  padding: 0 14px;
+}
+.btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover { filter: brightness(1.05); }
+
+.btn-block { width: 100%; }
+.btn-sm { min-height: 34px; font-size: .78rem; padding: 0 12px; }
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   10. DASHBOARD STATS
+   ============================================================ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.stat:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-ring);
+  box-shadow: var(--shadow-md);
+}
+.stat-label {
+  font-size: .74rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.03em;
+}
+.stat-sub { font-size: .8rem; color: var(--muted); margin-top: 6px; }
+
+.welcome {
+  background: linear-gradient(135deg, var(--primary-soft), transparent);
+  border: 1px solid var(--primary-ring);
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.welcome h1 { font-size: clamp(1.3rem, 3vw, 1.7rem); margin-bottom: 8px; }
+.welcome p { color: var(--muted); font-size: .94rem; }
+
+/* ============================================================
+   11. TABLES / LISTS
+   ============================================================ */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+  min-width: 620px;
+}
+thead {
+  background: var(--surface-2);
+}
+th, td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background .14s ease; }
+tbody tr:hover { background: var(--surface-2); }
+td .link-btn {
+  color: var(--primary-ink);
+  font-weight: 700;
+  font-size: .84rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+td .link-btn:hover { background: var(--primary-soft); }
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: .92rem;
+}
+.empty strong { display: block; color: var(--text); font-size: 1rem; margin-bottom: 6px; }
+
+/* ============================================================
+   12. STATUS PILLS
+   ============================================================ */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.pill::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.pill.pending   { color: var(--warning); background: var(--warning-soft); border-color: var(--warning); }
+.pill.review    { color: var(--primary-ink); background: var(--primary-soft); border-color: var(--primary-ring); }
+.pill.approved  { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.pill.completed { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.pill.rejected  { color: var(--danger); background: var(--danger-soft); border-color: var(--danger); }
+.pill.received  { color: var(--primary-ink); background: var(--primary-soft); border-color: var(--primary-ring); }
+
+.priority {
+  display: inline-block;
+  font-size: .72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.priority.high { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+.priority.low  { color: var(--muted); }
+
+/* ============================================================
+   13. REQUEST DETAIL / TIMELINE
+   ============================================================ */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+  margin-bottom: 20px;
+}
+.detail-grid dt {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.detail-grid dd { font-size: .92rem; color: var(--text); }
+
+.timeline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 16px 0;
+  overflow-x: auto;
+}
+.tl-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+  transition: all .2s ease;
+}
+.tl-step .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.tl-step.done {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+.tl-step.current {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.tl-step.rejected {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.tl-arrow {
+  color: var(--muted);
+  font-size: .9rem;
+  padding: 0 2px;
+}
+
+/* Status control panel */
+.status-controls {
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 20px;
+}
+.status-controls h4 {
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.status-controls .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip-btn {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
+  transition: all .16s ease;
+}
+.chip-btn:hover { border-color: var(--primary-ring); color: var(--text); }
+.chip-btn.is-active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+}
+
+/* ============================================================
+   14. UPLOAD / FILE CARDS
+   ============================================================ */
+.file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 34px 22px;
+  border: 2px dashed var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface-2);
+  text-align: center;
+  transition: border-color .18s ease, background .18s ease;
+}
+.file-drop:hover { border-color: var(--primary-ring); background: var(--primary-soft); }
+.file-drop .icon { width: 34px; height: 34px; color: var(--primary-ink); }
+.file-drop p { color: var(--muted); font-size: .88rem; }
+.file-drop input[type="file"] { display: none; }
+
+.file-list { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.file-item {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color .16s ease;
+}
+.file-item:hover { border-color: var(--primary-ring); }
+.file-icon {
+  width: 44px; height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .03em;
+  color: var(--primary-ink);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-ring);
+}
+.file-meta strong { display: block; font-size: .92rem; word-break: break-all; }
+.file-meta span { display: block; color: var(--muted); font-size: .8rem; }
+
+/* ============================================================
+   15. FAQ
+   ============================================================ */
+.faq-list { display: flex; flex-direction: column; gap: 10px; }
+.faq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  overflow: hidden;
+  transition: border-color .16s ease;
+}
+.faq-item.is-open { border-color: var(--primary-ring); }
+.faq-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 17px 20px;
+  text-align: left;
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  transition: background .16s ease;
+}
+.faq-btn:hover { background: var(--surface-2); }
+.faq-btn::after {
+  content: "+";
+  margin-left: auto;
+  flex: none;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--primary-ink);
+  transition: transform .22s ease;
+}
+.faq-item.is-open .faq-btn::after { transform: rotate(45deg); }
+.faq-panel {
+  padding: 0 20px 18px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.faq-panel p + p { margin-top: 10px; }
+
+/* ============================================================
+   16. SUPPORT / CONTACT CARDS
+   ============================================================ */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+.contact-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.contact-icon {
+  width: 46px; height: 46px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--primary-ink);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-ring);
+}
+.contact-card strong { display: block; font-size: .92rem; }
+.contact-card span  { display: block; color: var(--muted); font-size: .82rem; word-break: break-word; }
+
+/* ============================================================
+   17. TOASTS
+   ============================================================ */
+.toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 40px));
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  font-size: .86rem;
+  color: var(--text);
+  pointer-events: auto;
+  animation: toast-in .22s ease both;
+}
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+.toast .t-icon { font-size: 1rem; flex: none; }
+.toast strong { display: block; font-weight: 800; }
+.toast p { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   18. MODAL (confirm / review)
+   ============================================================ */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2,6,23,.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fade-in .18s ease both;
+}
+.modal-panel {
+  position: relative;
+  width: min(520px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 26px;
+  box-shadow: var(--shadow-lg);
+  animation: pop-in .22s ease both;
+}
+.modal-panel h2 { font-size: 1.15rem; margin-bottom: 10px; }
+.modal-panel p { color: var(--muted); font-size: .92rem; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.review-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  font-size: .88rem;
+}
+.review-list div { display: flex; gap: 10px; }
+.review-list dt { color: var(--muted); min-width: 110px; font-weight: 700; }
+.review-list dd { color: var(--text); flex: 1; word-break: break-word; }
+
+/* ============================================================
+   19. FOOTER + MANUAL TESTING TOOLS
+   ============================================================ */
+.site-footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 22px 40px;
+  border-top: 1px solid var(--border);
+  font-size: .84rem;
+  color: var(--muted);
+}
+.site-footer .row { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+.tools {
+  margin-top: 20px;
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.tools summary {
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--primary-ink);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tools summary::-webkit-details-marker { display: none; }
+.tools summary::before {
+  content: "▸";
+  font-size: .9rem;
+  transition: transform .2s ease;
+}
+.tools[open] summary::before { transform: rotate(90deg); }
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 16px;
+  margin-top: 14px;
+}
+.tool-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .84rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.tool-item:hover { background: var(--surface-2); }
+.tool-item input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--success);
+  cursor: pointer;
+  flex: none;
+}
+.tool-item a {
+  color: var(--primary-ink);
+  font-weight: 700;
+  margin-left: auto;
+  font-size: .78rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.tool-item a:hover { background: var(--primary-soft); }
+
+.reset-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.reset-row .note { font-size: .78rem; color: var(--muted); }
+
+/* ============================================================
+   20. RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .header-inner { padding: 11px 18px; gap: 10px; }
+  .brand-text small { display: none; }
+  .menu-btn { display: grid; }
+
+  .nav {
+    order: 4;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding-top: 10px;
+    margin-top: 4px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+  .nav.open { display: flex; }
+  .nav a { padding: 12px 14px; font-size: .92rem; border-radius: 11px; }
+
+  .detail-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  main { padding: 20px 16px 40px; }
+  .auth-card { padding: 24px 20px; }
+  .card { padding: 18px; }
+
+  table { min-width: 520px; }
+  .table-wrap { border-radius: 12px; }
+
+  .modal-panel { padding: 20px; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; }
+
+  .toast-stack { right: 12px; left: 12px; bottom: 12px; max-width: none; }
+
+  .file-item { grid-template-columns: 40px 1fr; }
+  .file-item .btn { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   21. REDUCED MOTION & PRINT
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  .stat:hover, .btn:hover { transform: none; }
+}
+@media print {
+  .app-header, .site-footer, .demo-banner, .toast-stack, .modal { display: none !important; }
+  body { background: #fff; color: #000; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     DEMO BANNER
+     ============================================================ -->
+<div class="demo-banner">
+  <strong>DEMO / TEST ENVIRONMENT</strong>
+  <span> · Data lives only in this browser · Not a real service</span>
+</div>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="app-header">
+  <div class="header-inner">
+    <a class="brand" href="#/dashboard" aria-label="DemoPortal home">
+      <span class="brand-mark" aria-hidden="true">DP</span>
+      <span class="brand-text">
+        <strong>DemoPortal</strong>
+        <small>User Service &amp; Request Portal</small>
+      </span>
+    </a>
+
+    <nav class="nav" id="appNav" aria-label="Main">
+      <!-- nav links rendered by JS depending on login state -->
+    </nav>
+
+    <div class="header-actions">
+
+      <!-- Help → opens the User Manual in a new tab -->
+      <a class="help-btn-lg" href="instructions.html"
+         target="_blank" rel="noopener"
+         title="Open the User Manual"
+         aria-label="Open the User Manual in a new tab">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1 1-1.1 1.8v.3"/>
+          <circle cx="12" cy="17.2" r="0.85" fill="currentColor" stroke="none"/>
+        </svg>
+        Help
+      </a>
+
+      <!-- Mobile / tablet icon-only version -->
+      <a class="icon-btn help-btn" href="instructions.html"
+         target="_blank" rel="noopener"
+         title="Help — Open User Manual"
+         aria-label="Open the User Manual in a new tab">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1 1-1.1 1.8v.3"/>
+          <circle cx="12" cy="17.2" r="0.85" fill="currentColor" stroke="none"/>
+        </svg>
+      </a>
+
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch to dark mode">
+        <svg class="icon" id="themeIcon" aria-hidden="true" viewBox="0 0 24 24">
+          <use href="#icon-moon"/>
+        </svg>
+      </button>
+
+      <button class="icon-btn menu-btn" id="menuBtn" type="button"
+              aria-label="Open menu" aria-expanded="false" aria-controls="appNav">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     MAIN — all views
+     ============================================================ -->
+<main id="main">
+
+  <!-- ---------- LOGIN ---------- -->
+  <section class="view hidden" id="view-login" aria-labelledby="loginTitle">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <h1 id="loginTitle">Log In</h1>
+        <p class="sub">Welcome back. Sign in to access your DemoPortal account.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="field" id="loginUserField">
+            <label for="loginUser">Email or Username <span class="req">*</span></label>
+            <input id="loginUser" name="user" type="text" autocomplete="username" required>
+            <span class="err" id="loginUserErr"></span>
+          </div>
+
+          <div class="field" id="loginPassField">
+            <label for="loginPass">Password <span class="req">*</span></label>
+            <input id="loginPass" name="pass" type="password" autocomplete="current-password" required>
+            <span class="err" id="loginPassErr"></span>
+          </div>
+
+          <div class="field" style="margin-bottom:12px;">
+            <label class="checkbox">
+              <input type="checkbox" id="loginRemember" checked>
+              Remember me
+            </label>
+          </div>
+
+          <div style="text-align:right;margin-bottom:14px;">
+            <button type="button" class="link-btn" id="forgotBtn"
+                    style="color:var(--primary-ink);font-weight:700;font-size:.84rem;">
+              Forgot password?
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Log In</button>
+        </form>
+
+        <p class="auth-foot">
+          Don’t have an account?
+          <a href="#/register">Create an account</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- REGISTER ---------- -->
+  <section class="view hidden" id="view-register" aria-labelledby="regTitle">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <h1 id="regTitle">Create Account</h1>
+        <p class="sub">Set up your DemoPortal account. All data stays in your browser.</p>
+
+        <form id="registerForm" novalidate>
+          <div class="field" id="regNameField">
+            <label for="regName">Full Name <span class="req">*</span></label>
+            <input id="regName" name="fullName" type="text" autocomplete="name" required>
+            <span class="err" id="regNameErr"></span>
+          </div>
+
+          <div class="field" id="regUserField">
+            <label for="regUser">Username <span class="req">*</span></label>
+            <input id="regUser" name="username" type="text" autocomplete="username" required>
+            <span class="err" id="regUserErr"></span>
+          </div>
+
+          <div class="field" id="regEmailField">
+            <label for="regEmail">Email <span class="req">*</span></label>
+            <input id="regEmail" name="email" type="email" autocomplete="email" required>
+            <span class="err" id="regEmailErr"></span>
+          </div>
+
+          <div class="field-row">
+            <div class="field" id="regPassField">
+              <label for="regPass">Password <span class="req">*</span></label>
+              <input id="regPass" name="pass" type="password" autocomplete="new-password" required>
+              <span class="err" id="regPassErr"></span>
+            </div>
+            <div class="field" id="regPass2Field">
+              <label for="regPass2">Confirm Password <span class="req">*</span></label>
+              <input id="regPass2" name="pass2" type="password" autocomplete="new-password" required>
+              <span class="err" id="regPass2Err"></span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">
+            Create Account
+          </button>
+        </form>
+
+        <p class="auth-foot">
+          Already have an account?
+          <a href="#/login">Log In</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- DASHBOARD ---------- -->
+  <section class="view hidden" id="view-dashboard">
+    <div class="welcome">
+      <h1 id="dashWelcome">Welcome!</h1>
+      <p>This is your DemoPortal dashboard. Use the navigation above to manage your profile, submit requests, upload files, or report a problem.</p>
+    </div>
+
+    <div class="stats" id="dashStats">
+      <div class="stat">
+        <div class="stat-label">Active Requests</div>
+        <div class="stat-value" id="statActive">0</div>
+        <div class="stat-sub">Pending or in review</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Pending Requests</div>
+        <div class="stat-value" id="statPending">0</div>
+        <div class="stat-sub">Awaiting action</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Completed Requests</div>
+        <div class="stat-value" id="statCompleted">0</div>
+        <div class="stat-sub">Finished successfully</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Uploaded Files</div>
+        <div class="stat-value" id="statFiles">0</div>
+        <div class="stat-sub">Stored in this browser</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Recent requests</h2>
+        <a href="#/requests" class="btn btn-secondary btn-sm">View all</a>
+      </div>
+      <div id="dashRecent">
+        <div class="empty">
+          <strong>No requests yet</strong>
+          Submit your first request from the Requests page.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- PROFILE ---------- -->
+  <section class="view hidden" id="view-profile">
+    <div class="page-head">
+      <h1>Profile</h1>
+      <p>View and update your account information.</p>
+    </div>
+
+    <div class="card" style="max-width:640px;">
+      <div class="card-head">
+        <h2>Account Information</h2>
+      </div>
+
+      <div class="field">
+        <label for="profUsername">Username</label>
+        <input id="profUsername" type="text" disabled>
+        <span class="hint">Username cannot be changed in this demo.</span>
+      </div>
+
+      <form id="profileForm" novalidate>
+        <div class="field" id="profNameField">
+          <label for="profName">Full Name <span class="req">*</span></label>
+          <input id="profName" type="text" required>
+          <span class="err" id="profNameErr"></span>
+        </div>
+
+        <div class="field" id="profEmailField">
+          <label for="profEmail">Email <span class="req">*</span></label>
+          <input id="profEmail" type="email" required>
+          <span class="err" id="profEmailErr"></span>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="button" class="btn btn-secondary" id="profCancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ---------- REQUESTS ---------- -->
+  <section class="view hidden" id="view-requests">
+    <div class="page-head">
+      <h1>Requests</h1>
+      <p>Submit and track your DemoPortal requests.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>My Requests</h2>
+        <button class="btn btn-primary btn-sm" id="newRequestBtn" type="button">+ New Request</button>
+      </div>
+
+      <div id="requestsEmpty" class="empty" hidden>
+        <strong>No requests yet</strong>
+        Click “+ New Request” to submit your first request.
+      </div>
+
+      <div class="table-wrap" id="requestsTableWrap" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="requestsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- New request form (opens below) -->
+    <div class="card hidden" id="newRequestCard">
+      <div class="card-head">
+        <h2>New Request</h2>
+        <button class="btn btn-ghost btn-sm" id="cancelRequestBtn" type="button">Cancel</button>
+      </div>
+
+      <form id="requestForm" novalidate>
+        <div class="field" id="reqTitleField">
+          <label for="reqTitle">Request Title <span class="req">*</span></label>
+          <input id="reqTitle" type="text" placeholder="Short summary of your request" required>
+          <span class="err" id="reqTitleErr"></span>
+        </div>
+
+        <div class="field-row">
+          <div class="field" id="reqCatField">
+            <label for="reqCategory">Request Category <span class="req">*</span></label>
+            <select id="reqCategory" required>
+              <option value="">Select a category…</option>
+              <option>General</option>
+              <option>Technical Support</option>
+              <option>Account</option>
+              <option>Documents</option>
+              <option>Other</option>
+            </select>
+            <span class="err" id="reqCatErr"></span>
+          </div>
+
+          <div class="field" id="reqPrioField">
+            <label for="reqPriority">Priority <span class="req">*</span></label>
+            <select id="reqPriority" required>
+              <option value="">Select priority…</option>
+              <option>Low</option>
+              <option selected>Normal</option>
+              <option>High</option>
+            </select>
+            <span class="err" id="reqPrioErr"></span>
+          </div>
+        </div>
+
+        <div class="field" id="reqDescField">
+          <label for="reqDesc">Description <span class="req">*</span></label>
+          <textarea id="reqDesc" placeholder="Describe what you need. Include any details that will help staff understand your request." required></textarea>
+          <span class="err" id="reqDescErr"></span>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Submit Request</button>
+          <button type="button" class="btn btn-secondary" id="reqReviewCancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ---------- REQUEST DETAIL ---------- -->
+  <section class="view hidden" id="view-request-detail">
+    <div class="page-head">
+      <a href="#/requests" class="btn btn-ghost btn-sm" style="margin-bottom:14px;">← Back to Requests</a>
+      <h1 id="detailTitle">Request</h1>
+      <p id="detailSubtitle"></p>
+    </div>
+
+    <div class="card">
+      <dl class="detail-grid">
+        <div>
+          <dt>Request ID</dt>
+          <dd id="detailId">—</dd>
+        </div>
+        <div>
+          <dt>Title</dt>
+          <dd id="detailReqTitle">—</dd>
+        </div>
+        <div>
+          <dt>Category</dt>
+          <dd id="detailCat">—</dd>
+        </div>
+        <div>
+          <dt>Priority</dt>
+          <dd id="detailPrio">—</dd>
+        </div>
+        <div>
+          <dt>Date Submitted</dt>
+          <dd id="detailDate">—</dd>
+        </div>
+        <div>
+          <dt>Current Status</dt>
+          <dd id="detailStatus">—</dd>
+        </div>
+      </dl>
+
+      <h3 style="font-size:.9rem;margin:12px 0 6px;">Description</h3>
+      <p id="detailDesc" style="color:var(--muted);font-size:.92rem;"></p>
+
+      <h3 style="font-size:.9rem;margin:22px 0 6px;">Status Timeline</h3>
+      <div class="timeline" id="detailTimeline"></div>
+    </div>
+
+    <!-- Demo status controls -->
+    <div class="card">
+      <h3 style="font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">
+        Demo Status Controls
+      </h3>
+      <p style="color:var(--muted);font-size:.84rem;margin-bottom:12px;">
+        Use these buttons to simulate status changes. This exists so you can test the “How to Check Request Status” guide.
+      </p>
+      <div class="chip-row" id="statusChips"></div>
+    </div>
+  </section>
+
+  <!-- ---------- UPLOAD FILES ---------- -->
+  <section class="view hidden" id="view-upload">
+    <div class="page-head">
+      <h1>Upload Files</h1>
+      <p>Attach documents or images to your demo account. Only metadata is stored in this browser.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Choose File</h2>
+      </div>
+
+      <label class="file-drop" for="fileInput" tabindex="0" id="fileDrop">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M12 16V4"/><path d="m6 10 6-6 6 6"/>
+          <path d="M4 20h16"/>
+        </svg>
+        <p><strong>Click to choose a file</strong></p>
+        <p style="font-size:.78rem;">Accepted: PDF, JPG, PNG, DOC, DOCX · Max 5&nbsp;MB</p>
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+      </label>
+
+      <div id="filePreview" class="hidden" style="margin-top:16px;">
+        <div class="file-item">
+          <div class="file-icon" id="prevIcon">FILE</div>
+          <div class="file-meta">
+            <strong id="prevName">—</strong>
+            <span id="prevMeta">—</span>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn btn-primary" id="uploadFileBtn" type="button">Upload File</button>
+          <button class="btn btn-secondary" id="cancelFileBtn" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Uploaded Files</h2>
+        <span id="fileCount" style="color:var(--muted);font-size:.84rem;">0 files</span>
+      </div>
+      <div id="fileList"></div>
+    </div>
+  </section>
+
+  <!-- ---------- REPORT PROBLEM ---------- -->
+  <section class="view hidden" id="view-report">
+    <div class="page-head">
+      <h1>Report a Problem</h1>
+      <p>Tell us about an error or something that is not working. Please be as specific as possible.</p>
+    </div>
+
+    <div class="card" style="max-width:760px;">
+      <form id="reportForm" novalidate>
+        <div class="field" id="repTitleField">
+          <label for="repTitle">Problem Title <span class="req">*</span></label>
+          <input id="repTitle" type="text" placeholder="Short summary of the problem" required>
+          <span class="err" id="repTitleErr"></span>
+        </div>
+
+        <div class="field-row">
+          <div class="field" id="repPageField">
+            <label for="repPage">Page / Feature <span class="req">*</span></label>
+            <input id="repPage" type="text" placeholder="e.g. Login page, Upload Files" required>
+            <span class="err" id="repPageErr"></span>
+          </div>
+
+          <div class="field" id="repSevField">
+            <label for="repSeverity">Severity <span class="req">*</span></label>
+            <select id="repSeverity" required>
+              <option value="">Select severity…</option>
+              <option>Low</option>
+              <option selected>Medium</option>
+              <option>High</option>
+            </select>
+            <span class="err" id="repSevErr"></span>
+          </div>
+        </div>
+
+        <div class="field" id="repDescField">
+          <label for="repDesc">Description <span class="req">*</span></label>
+          <textarea id="repDesc" placeholder="Describe what happened, what you expected, and the steps you took before the problem appeared." required></textarea>
+          <span class="err" id="repDescErr"></span>
+        </div>
+
+        <div class="field">
+          <label for="repShot">Screenshot / File (optional)</label>
+          <input id="repShot" type="file" accept=".pdf,.jpg,.jpeg,.png">
+          <span class="hint">Filenames are recorded for demo purposes only. No file content is stored.</span>
+        </div>
+
+        <div class="callout warning" style="margin-bottom:16px;">
+          <strong style="display:block;color:var(--danger);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;">Important</strong>
+          Do not include passwords, authentication codes, or other sensitive information in problem reports.
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Submit Problem Report</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>My Problem Reports</h2>
+        <span id="reportCount" style="color:var(--muted);font-size:.84rem;">0 reports</span>
+      </div>
+      <div id="reportList"></div>
+    </div>
+  </section>
+
+  <!-- ---------- FAQ ---------- -->
+  <section class="view hidden" id="view-faq">
+    <div class="page-head">
+      <h1>Frequently Asked Questions</h1>
+      <p>Quick answers about DemoPortal.</p>
+    </div>
+    <div class="faq-list" id="faqList"></div>
+  </section>
+
+  <!-- ---------- SUPPORT ---------- -->
+  <section class="view hidden" id="view-support">
+    <div class="page-head">
+      <h1>Support</h1>
+      <p>Need additional help? Reach out to the DemoPortal support team.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Contact Support</h2>
+        <span class="pill received">Demo only</span>
+      </div>
+
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:18px;">
+        This is fictional contact information used for testing the User Manual.
+        No real emails or messages will be sent.
+      </p>
+
+      <div class="contact-grid">
+        <div class="contact-card">
+          <div class="contact-icon">@</div>
+          <div>
+            <strong>Email</strong>
+            <span>support@demoportal.local</span>
+          </div>
+        </div>
+        <div class="contact-card">
+          <div class="contact-icon">☎</div>
+          <div>
+            <strong>Phone</strong>
+            <span>+00 (000) 000-0000</span>
+          </div>
+        </div>
+        <div class="contact-card">
+          <div class="contact-icon">◷</div>
+          <div>
+            <strong>Hours</strong>
+            <span>Mon–Fri, 9:00–17:00 (demo)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:20px;">
+        <a href="#/requests" class="btn btn-primary">Open a Support Request</a>
+        <a href="#/report" class="btn btn-secondary">Report a Problem</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="site-footer">
+  <div class="row">
+    <p><strong>&copy; <span id="year"></span> DemoPortal</strong> — Demo / Test Environment. Not a real service.</p>
+    <p>Testing companion to the User Manual.</p>
+  </div>
+
+  <details class="tools" id="toolsPanel">
+    <summary>Manual Testing Tools</summary>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:10px;">
+      Tick each item as you verify it against the User Manual. Progress is saved in this browser.
+    </p>
+    <div class="tools-grid" id="toolsGrid"></div>
+
+    <div class="reset-row">
+      <button class="btn btn-danger btn-sm" id="resetDemoBtn" type="button">Reset Demo Data</button>
+      <span class="note">Deletes all demo accounts, requests, uploaded file records, reports, and checklist progress.</span>
+    </div>
+  </details>
+</footer>
+
+<!-- ============================================================
+     TOASTS + MODAL
+     ============================================================ -->
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+
+<div class="modal hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal-backdrop" data-modal-close></div>
+  <div class="modal-panel">
+    <h2 id="confirmTitle">Confirm</h2>
+    <div id="confirmBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="confirmCancel" type="button">Cancel</button>
+      <button class="btn btn-danger" id="confirmOk" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==============================================================
+   DemoPortal — script.js
+   --------------------------------------------------------------
+   A demo-only test system for verifying the User Manual.
+   All data lives in localStorage under the "demo." prefix.
+   ============================================================== */
+
+(function () {
+  "use strict";
+
+  /* ---------- Shorthands ---------- */
+  const $  = (s, c) => (c || document).querySelector(s);
+  const $$ = (s, c) => Array.prototype.slice.call((c || document).querySelectorAll(s));
+
+  /* ============================================================
+     STORAGE HELPERS
+     ============================================================ */
+  const store = {
+    get(key, fallback) {
+      try {
+        const raw = localStorage.getItem("demo." + key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem("demo." + key, JSON.stringify(value)); } catch (e) {}
+    },
+    del(key) {
+      try { localStorage.removeItem("demo." + key); } catch (e) {}
+    }
+  };
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  const state = {
+    user: null,
+    route: "login"
+  };
+
+  /* ============================================================
+     TOASTS
+     ============================================================ */
+  const toastStack = $("#toastStack");
+  function toast(message, type, detail) {
+    const el = document.createElement("div");
+    el.className = "toast" + (type ? " " + type : "");
+    const icon = type === "error" ? "⚠" : type === "warning" ? "!" : "✓";
+    el.innerHTML =
+      '<span class="t-icon">' + icon + "</span>" +
+      "<div><strong>" + esc(message) + "</strong>" +
+      (detail ? "<p>" + esc(detail) + "</p>" : "") +
+      "</div>";
+    toastStack.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = "opacity .2s ease, transform .2s ease";
+      el.style.opacity = "0";
+      el.style.transform = "translateY(8px)";
+      setTimeout(() => el.remove(), 220);
+    }, 3400);
+  }
+
+  /* ============================================================
+     UTILITIES
+     ============================================================ */
+  function esc(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function fmtDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleString(undefined, {
+      year: "numeric", month: "short", day: "2-digit",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+  function fmtBytes(bytes) {
+    if (!bytes && bytes !== 0) return "—";
+    const units = ["B", "KB", "MB", "GB"];
+    let n = bytes, i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return n.toFixed(n >= 10 || i === 0 ? 0 : 1) + " " + units[i];
+  }
+  function nowISO() { return new Date().toISOString(); }
+  function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+
+  /* ============================================================
+     STORE ACCESSORS
+     ============================================================ */
+  function getUsers()       { return store.get("users", []); }
+  function setUsers(list)   { store.set("users", list); }
+  function getRequests()    { return store.get("requests", []); }
+  function setRequests(l)   { store.set("requests", l); }
+  function getFiles()       { return store.get("files", []); }
+  function setFiles(l)      { store.set("files", l); }
+  function getReports()     { return store.get("reports", []); }
+  function setReports(l)    { store.set("reports", l); }
+  function getCounters()    { return store.get("counters", { req: 1, bug: 1 }); }
+  function setCounters(c)   { store.set("counters", c); }
+
+  function nextReqId() {
+    const c = getCounters();
+    const id = "REQ-" + String(c.req).padStart(4, "0");
+    c.req++;
+    setCounters(c);
+    return id;
+  }
+  function nextBugId() {
+    const c = getCounters();
+    const id = "BUG-" + String(c.bug).padStart(4, "0");
+    c.bug++;
+    setCounters(c);
+    return id;
+  }
+
+  function myRequests() { return getRequests().filter(r => r.user === state.user.username); }
+  function myFiles()    { return getFiles().filter(f => f.user === state.user.username); }
+  function myReports()  { return getReports().filter(r => r.user === state.user.username); }
+
+  /* ============================================================
+     SESSION
+     ============================================================ */
+  function loadSession() {
+    try {
+      let raw = sessionStorage.getItem("demo.sessionTemp") || localStorage.getItem("demo.session");
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.username) return null;
+      const user = getUsers().find(u => u.username === s.username);
+      return user || null;
+    } catch (e) { return null; }
+  }
+  function saveSession(user, remember) {
+    const data = JSON.stringify({ username: user.username });
+    try {
+      if (remember) {
+        localStorage.setItem("demo.session", data);
+        sessionStorage.removeItem("demo.sessionTemp");
+      } else {
+        sessionStorage.setItem("demo.sessionTemp", data);
+        localStorage.removeItem("demo.session");
+      }
+    } catch (e) {}
+  }
+  function clearSession() {
+    try {
+      localStorage.removeItem("demo.session");
+      sessionStorage.removeItem("demo.sessionTemp");
+    } catch (e) {}
+  }
+
+  /* ============================================================
+     THEME
+     ============================================================ */
+  const themeBtn  = $("#themeBtn");
+  const themeIcon = $("#themeIcon");
+  function syncThemeIcon() {
+    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    themeIcon.innerHTML = dark
+      ? '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>'
+      : '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>';
+    themeBtn.setAttribute("aria-label",
+      dark ? "Switch to light mode" : "Switch to dark mode");
+  }
+  themeBtn.addEventListener("click", () => {
+    const next = document.documentElement.getAttribute("data-theme") === "dark"
+      ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    store.set("theme", next);
+    syncThemeIcon();
+  });
+  syncThemeIcon();
+
+  /* ============================================================
+     MOBILE MENU
+     ============================================================ */
+  const menuBtn = $("#menuBtn");
+  const appNav  = $("#appNav");
+  menuBtn.addEventListener("click", () => {
+    const open = appNav.classList.toggle("open");
+    menuBtn.setAttribute("aria-expanded", String(open));
+    menuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  });
+  appNav.addEventListener("click", e => {
+    if (e.target.closest("a")) {
+      appNav.classList.remove("open");
+      menuBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* ============================================================
+     NAV RENDERING  ← FIXED
+     ============================================================ */
+  function renderNav() {
+    if (state.user) {
+      appNav.innerHTML =
+        '<a href="#/dashboard" data-route="dashboard">Dashboard</a>' +
+        '<a href="#/profile"   data-route="profile">Profile</a>' +
+        '<a href="#/requests"  data-route="requests">Requests</a>' +
+        '<a href="#/upload"    data-route="upload">Upload Files</a>' +
+        '<a href="#/report"    data-route="report">Report Problem</a>' +
+        '<a href="#/faq"       data-route="faq">FAQ</a>' +
+        '<a href="#/support"   data-route="support">Support</a>' +
+        '<a href="instructions.html" target="_blank" rel="noopener" data-route="help">Help ↗</a>' +
+        '<a href="#" id="logoutLink">Logout</a>';
+
+      const logout = $("#logoutLink");
+      if (logout) {
+        logout.addEventListener("click", e => {
+          e.preventDefault();
+          doLogout();
+        });
+      }
+    } else {
+      appNav.innerHTML =
+        '<a href="#/login"    data-route="login">Log In</a>' +
+        '<a href="#/register" data-route="register">Create Account</a>';
+    }
+
+    $$("#appNav a[data-route]").forEach(a => {
+      a.classList.toggle("is-active", a.dataset.route === state.route);
+    });
+  }
+
+  /* ============================================================
+     ROUTER
+     ============================================================ */
+  const protectedRoutes = ["dashboard","profile","requests","request-detail","upload","report","faq","support"];
+
+  function showView(id) {
+    $$(".view").forEach(v => v.classList.add("hidden"));
+    const el = $("#view-" + id);
+    if (el) el.classList.remove("hidden");
+  }
+
+  function route() {
+    const hash = (location.hash || "#/login").replace(/^#\/?/, "") || "login";
+    const [name, param] = hash.split("/");
+
+    if (protectedRoutes.indexOf(name) !== -1 && !state.user) {
+      toast("Please log in to continue.", "warning");
+      location.hash = "#/login";
+      return;
+    }
+    if (state.user && (name === "login" || name === "register" || name === "")) {
+      location.hash = "#/dashboard";
+      return;
+    }
+
+    state.route = name;
+    renderNav();
+
+    switch (name) {
+      case "login":          showView("login");     break;
+      case "register":       showView("register");  break;
+      case "dashboard":      showView("dashboard"); renderDashboard();   break;
+      case "profile":        showView("profile");   renderProfile();     break;
+      case "requests":       showView("requests");  renderRequests();    break;
+      case "request-detail": showView("request-detail"); renderRequestDetail(param); break;
+      case "upload":         showView("upload");    renderFiles();       break;
+      case "report":         showView("report");    renderReports();     break;
+      case "faq":            showView("faq");       renderFaqs();        break;
+      case "support":        showView("support");   break;
+      default:               showView("login");     break;
+    }
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  window.addEventListener("hashchange", route);
+
+  /* ============================================================
+     AUTH — REGISTER
+     ============================================================ */
+  const regForm = $("#registerForm");
+
+  function setFieldError(fieldId, errId, msg) {
+    const f = $("#" + fieldId);
+    const e = $("#" + errId);
+    if (f) f.classList.toggle("invalid", !!msg);
+    if (e) e.textContent = msg || "";
+    return !msg;
+  }
+
+  regForm.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const fullName = $("#regName").value.trim();
+    const username = $("#regUser").value.trim();
+    const email    = $("#regEmail").value.trim();
+    const pass     = $("#regPass").value;
+    const pass2    = $("#regPass2").value;
+
+    let ok = true;
+    ok = setFieldError("regNameField","regNameErr",
+      !fullName ? "Please enter your full name." : "") && ok;
+    ok = setFieldError("regUserField","regUserErr",
+      !username ? "Please choose a username." :
+      username.length < 3 ? "Username must be at least 3 characters." : "") && ok;
+    ok = setFieldError("regEmailField","regEmailErr",
+      !email ? "Please enter your email." :
+      !isValidEmail(email) ? "Please enter a valid email address." : "") && ok;
+    ok = setFieldError("regPassField","regPassErr",
+      !pass ? "Please enter a password." :
+      pass.length < 6 ? "Password must be at least 6 characters." : "") && ok;
+    ok = setFieldError("regPass2Field","regPass2Err",
+      !pass2 ? "Please confirm your password." :
+      pass !== pass2 ? "Passwords do not match." : "") && ok;
+
+    if (!ok) {
+      toast("Please correct the highlighted fields.", "error");
+      return;
+    }
+
+    const users = getUsers();
+    const dup = users.find(u =>
+      u.username.toLowerCase() === username.toLowerCase() ||
+      u.email.toLowerCase() === email.toLowerCase()
+    );
+    if (dup) {
+      toast("An account with this information already exists.", "error",
+            "Try a different username or email, or log in instead.");
+      return;
+    }
+
+    const user = {
+      fullName, username, email,
+      password: pass,
+      createdAt: nowISO()
+    };
+    users.push(user);
+    setUsers(users);
+
+    toast("Account created successfully!", "success",
+          "You can now log in with your new account.");
+    regForm.reset();
+    $$(".field", regForm).forEach(f => f.classList.remove("invalid"));
+    $$(".err", regForm).forEach(e => e.textContent = "");
+
+    if (confirm("Account created successfully! Continue to Login now?")) {
+      location.hash = "#/login";
+      setTimeout(() => { $("#loginUser").value = username; $("#loginPass").focus(); }, 50);
+    }
+  });
+
+  /* ============================================================
+     AUTH — LOGIN
+     ============================================================ */
+  const loginForm = $("#loginForm");
+
+  loginForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const id  = $("#loginUser").value.trim();
+    const pw  = $("#loginPass").value;
+    const remember = $("#loginRemember").checked;
+
+    let ok = true;
+    ok = setFieldError("loginUserField","loginUserErr",
+      !id ? "Please enter your email or username." : "") && ok;
+    ok = setFieldError("loginPassField","loginPassErr",
+      !pw ? "Please enter your password." : "") && ok;
+    if (!ok) { toast("Please fill in all fields.", "error"); return; }
+
+    const user = getUsers().find(u =>
+      (u.username.toLowerCase() === id.toLowerCase() ||
+       u.email.toLowerCase()    === id.toLowerCase()) &&
+      u.password === pw
+    );
+
+    if (!user) {
+      setFieldError("loginUserField","loginUserErr", "Invalid username/email or password.");
+      toast("Invalid username/email or password.", "error");
+      return;
+    }
+
+    state.user = user;
+    saveSession(user, remember);
+    loginForm.reset();
+    $$(".field", loginForm).forEach(f => f.classList.remove("invalid"));
+    $$(".err", loginForm).forEach(e => e.textContent = "");
+
+    toast("Login successful!", "success", "Welcome back, " + user.fullName + ".");
+    location.hash = "#/dashboard";
+  });
+
+  $("#forgotBtn").addEventListener("click", () => {
+    toast("Password recovery is not available in this demo.", "warning");
+  });
+
+  /* ============================================================
+     AUTH — LOGOUT
+     ============================================================ */
+  function doLogout() {
+    state.user = null;
+    clearSession();
+    toast("Logged out successfully!", "success");
+    location.hash = "#/login";
+  }
+
+  /* ============================================================
+     DASHBOARD
+     ============================================================ */
+  function renderDashboard() {
+    if (!state.user) return;
+    const firstName = state.user.fullName.split(" ")[0];
+    $("#dashWelcome").textContent = "Welcome, " + firstName + "!";
+
+    const reqs = myRequests();
+    const pending   = reqs.filter(r => r.status === "Pending").length;
+    const active    = reqs.filter(r => r.status === "Pending" || r.status === "In Review").length;
+    const completed = reqs.filter(r => r.status === "Completed").length;
+    const files     = myFiles().length;
+
+    $("#statActive").textContent    = active;
+    $("#statPending").textContent   = pending;
+    $("#statCompleted").textContent = completed;
+    $("#statFiles").textContent     = files;
+
+    const recent = reqs.slice().sort((a,b) => b.createdAt.localeCompare(a.createdAt)).slice(0,5);
+    const box = $("#dashRecent");
+    if (recent.length === 0) {
+      box.innerHTML =
+        '<div class="empty"><strong>No requests yet</strong>' +
+        "Submit your first request from the Requests page.</div>";
+      return;
+    }
+    box.innerHTML =
+      '<div class="table-wrap"><table><thead><tr>' +
+        "<th>Request ID</th><th>Title</th><th>Status</th><th></th>" +
+      "</tr></thead><tbody>" +
+        recent.map(r =>
+          "<tr>" +
+            "<td><code>" + esc(r.id) + "</code></td>" +
+            "<td>" + esc(r.title) + "</td>" +
+            "<td>" + statusPill(r.status) + "</td>" +
+            '<td><a class="link-btn" href="#/request-detail/' + esc(r.id) + '">View</a></td>' +
+          "</tr>"
+        ).join("") +
+      "</tbody></table></div>";
+  }
+
+  /* ============================================================
+     PROFILE
+     ============================================================ */
+  function renderProfile() {
+    if (!state.user) return;
+    $("#profUsername").value = state.user.username;
+    $("#profName").value  = state.user.fullName;
+    $("#profEmail").value = state.user.email;
+    $$("#profileForm .field").forEach(f => f.classList.remove("invalid"));
+    $$("#profileForm .err").forEach(e => e.textContent = "");
+  }
+
+  $("#profileForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const name  = $("#profName").value.trim();
+    const email = $("#profEmail").value.trim();
+
+    let ok = true;
+    ok = setFieldError("profNameField","profNameErr",
+      !name ? "Please enter your full name." : "") && ok;
+    ok = setFieldError("profEmailField","profEmailErr",
+      !email ? "Please enter your email." :
+      !isValidEmail(email) ? "Please enter a valid email address." : "") && ok;
+    if (!ok) return;
+
+    const dup = getUsers().find(u =>
+      u.username !== state.user.username &&
+      u.email.toLowerCase() === email.toLowerCase()
+    );
+    if (dup) {
+      toast("That email is already used by another account.", "error");
+      return;
+    }
+
+    const users = getUsers();
+    const idx = users.findIndex(u => u.username === state.user.username);
+    if (idx !== -1) {
+      users[idx].fullName = name;
+      users[idx].email = email;
+      setUsers(users);
+      state.user = users[idx];
+    }
+
+    toast("Profile updated successfully.", "success");
+    renderNav();
+    renderDashboard();
+  });
+
+  $("#profCancel").addEventListener("click", () => {
+    renderProfile();
+    toast("Changes discarded.", "warning");
+  });
+
+  /* ============================================================
+     REQUESTS
+     ============================================================ */
+  const requestForm = $("#requestForm");
+  const newRequestCard = $("#newRequestCard");
+
+  $("#newRequestBtn").addEventListener("click", () => {
+    newRequestCard.classList.remove("hidden");
+    requestForm.reset();
+    $("#reqPriority").value = "Normal";
+    $$("#requestForm .field").forEach(f => f.classList.remove("invalid"));
+    $$("#requestForm .err").forEach(e => e.textContent = "");
+    newRequestCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  $("#cancelRequestBtn").addEventListener("click", () => newRequestCard.classList.add("hidden"));
+  $("#reqReviewCancel").addEventListener("click", () => newRequestCard.classList.add("hidden"));
+
+  function renderRequests() {
+    const reqs = myRequests().slice().sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    const empty = $("#requestsEmpty");
+    const wrap  = $("#requestsTableWrap");
+    const tbody = $("#requestsTbody");
+
+    if (reqs.length === 0) {
+      empty.hidden = false;
+      wrap.hidden = true;
+      tbody.innerHTML = "";
+      return;
+    }
+    empty.hidden = true;
+    wrap.hidden = false;
+
+    tbody.innerHTML = reqs.map(r =>
+      "<tr>" +
+        "<td><code>" + esc(r.id) + "</code></td>" +
+        "<td>" + esc(r.title) + "</td>" +
+        "<td>" + esc(r.category) + "</td>" +
+        "<td>" + esc(fmtDate(r.createdAt)) + "</td>" +
+        "<td>" + statusPill(r.status) + "</td>" +
+        '<td><a class="link-btn" href="#/request-detail/' + esc(r.id) + '">View</a></td>' +
+      "</tr>"
+    ).join("");
+  }
+
+  requestForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const title = $("#reqTitle").value.trim();
+    const cat   = $("#reqCategory").value;
+    const prio  = $("#reqPriority").value;
+    const desc  = $("#reqDesc").value.trim();
+
+    let ok = true;
+    ok = setFieldError("reqTitleField","reqTitleErr",
+      !title ? "Please enter a request title." : "") && ok;
+    ok = setFieldError("reqCatField","reqCatErr",
+      !cat ? "Please select a category." : "") && ok;
+    ok = setFieldError("reqPrioField","reqPrioErr",
+      !prio ? "Please select a priority." : "") && ok;
+    ok = setFieldError("reqDescField","reqDescErr",
+      !desc ? "Please add a description." :
+      desc.length < 10 ? "Please provide a bit more detail (at least 10 characters)." : "") && ok;
+
+    if (!ok) {
+      toast("Please complete all required fields.", "error");
+      return;
+    }
+
+    confirmDialog({
+      title: "Review your request",
+      bodyHTML:
+        '<p>Please review the details below before submitting.</p>' +
+        '<dl class="review-list">' +
+          "<div><dt>Title</dt><dd>" + esc(title) + "</dd></div>" +
+          "<div><dt>Category</dt><dd>" + esc(cat) + "</dd></div>" +
+          "<div><dt>Priority</dt><dd>" + esc(prio) + "</dd></div>" +
+          "<div><dt>Description</dt><dd>" + esc(desc) + "</dd></div>" +
+        "</dl>",
+      okLabel: "Confirm & Submit",
+      okClass: "btn-primary",
+      onOk: () => {
+        const id = nextReqId();
+        const req = {
+          id,
+          user: state.user.username,
+          title, category: cat, priority: prio, description: desc,
+          status: "Pending",
+          createdAt: nowISO()
+        };
+        const all = getRequests();
+        all.push(req);
+        setRequests(all);
+
+        requestForm.reset();
+        newRequestCard.classList.add("hidden");
+        renderRequests();
+        renderDashboard();
+
+        toast("Request submitted successfully!", "success", "Your reference number is " + id + ".");
+      }
+    });
+  });
+
+  /* ============================================================
+     REQUEST DETAIL
+     ============================================================ */
+  function statusPill(status) {
+    const map = {
+      "Pending":   "pending",
+      "In Review": "review",
+      "Approved":  "approved",
+      "Completed": "completed",
+      "Rejected":  "rejected",
+      "Received":  "received"
+    };
+    return '<span class="pill ' + (map[status] || "pending") + '">' + esc(status) + "</span>";
+  }
+
+  const FLOW = ["Submitted", "Pending", "In Review", "Approved", "Completed"];
+
+  function buildTimeline(status) {
+    if (status === "Rejected") {
+      return (
+        '<div class="tl-step done"><span class="dot"></span>Submitted</div>' +
+        '<div class="tl-arrow">→</div>' +
+        '<div class="tl-step rejected current"><span class="dot"></span>Rejected</div>'
+      );
+    }
+    const currentIdx = FLOW.indexOf(status);
+    let html = "";
+    FLOW.forEach((step, i) => {
+      if (i > 0) html += '<div class="tl-arrow">→</div>';
+      let cls = "tl-step";
+      if (i < currentIdx) cls += " done";
+      else if (i === currentIdx) cls += " current";
+      html += '<div class="' + cls + '"><span class="dot"></span>' + step + "</div>";
+    });
+    return html;
+  }
+
+  function renderRequestDetail(id) {
+    const req = getRequests().find(r => r.id === id && r.user === state.user.username);
+    if (!req) {
+      toast("Request not found.", "error");
+      location.hash = "#/requests";
+      return;
+    }
+    $("#detailTitle").textContent = req.title;
+    $("#detailSubtitle").textContent = "Request " + req.id;
+    $("#detailId").textContent = req.id;
+    $("#detailReqTitle").textContent = req.title;
+    $("#detailCat").textContent = req.category;
+    $("#detailPrio").innerHTML = '<span class="priority ' + req.priority.toLowerCase() + '">' +
+      esc(req.priority) + "</span>";
+    $("#detailDate").textContent = fmtDate(req.createdAt);
+    $("#detailStatus").innerHTML = statusPill(req.status);
+    $("#detailDesc").textContent = req.description;
+    $("#detailTimeline").innerHTML = buildTimeline(req.status);
+
+    const chips = $("#statusChips");
+    const statuses = ["Pending","In Review","Approved","Completed","Rejected"];
+    chips.innerHTML = statuses.map(s =>
+      '<button class="chip-btn' + (s === req.status ? " is-active" : "") +
+      '" type="button" data-status="' + s + '">' + s + "</button>"
+    ).join("");
+
+    $$(".chip-btn", chips).forEach(btn => {
+      btn.addEventListener("click", () => {
+        const newStatus = btn.dataset.status;
+        const all = getRequests();
+        const i = all.findIndex(r => r.id === req.id);
+        if (i === -1) return;
+        all[i].status = newStatus;
+        setRequests(all);
+        toast("Status updated to \u201C" + newStatus + "\u201D.", "success");
+        renderRequestDetail(id);
+      });
+    });
+  }
+
+  /* ============================================================
+     FILE UPLOAD
+     ============================================================ */
+  const fileInput   = $("#fileInput");
+  const fileDrop    = $("#fileDrop");
+  const filePreview = $("#filePreview");
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  const ACCEPTED_EXTS = [".pdf",".jpg",".jpeg",".png",".doc",".docx"];
+  let pendingFile = null;
+
+  fileDrop.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+  });
+
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files && fileInput.files[0];
+    if (!f) return;
+    const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+
+    if (ACCEPTED_EXTS.indexOf(ext) === -1) {
+      toast("Unsupported file type.", "error", "Accepted: PDF, JPG, PNG, DOC, DOCX.");
+      fileInput.value = "";
+      return;
+    }
+    if (f.size > MAX_FILE_SIZE) {
+      toast("File is too large.", "error", "Maximum size is 5 MB.");
+      fileInput.value = "";
+      return;
+    }
+    pendingFile = f;
+    $("#prevName").textContent = f.name;
+    $("#prevMeta").textContent = (f.type || ext) + " · " + fmtBytes(f.size);
+    $("#prevIcon").textContent = ext.replace(".","").slice(0,4).toUpperCase();
+    filePreview.classList.remove("hidden");
+  });
+
+  $("#cancelFileBtn").addEventListener("click", () => {
+    pendingFile = null;
+    fileInput.value = "";
+    filePreview.classList.add("hidden");
+  });
+
+  $("#uploadFileBtn").addEventListener("click", () => {
+    if (!pendingFile) return;
+    const f = pendingFile;
+    const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+
+    const all = getFiles();
+    all.push({
+      id: "FILE-" + Date.now(),
+      user: state.user.username,
+      name: f.name,
+      type: f.type || ext,
+      size: f.size,
+      date: nowISO()
+    });
+    setFiles(all);
+
+    pendingFile = null;
+    fileInput.value = "";
+    filePreview.classList.add("hidden");
+    renderFiles();
+    renderDashboard();
+    toast("File uploaded successfully!", "success", f.name + " (" + fmtBytes(f.size) + ")");
+  });
+
+  function renderFiles() {
+    const files = myFiles().slice().sort((a,b) => b.date.localeCompare(a.date));
+    $("#fileCount").textContent = files.length + (files.length === 1 ? " file" : " files");
+
+    const list = $("#fileList");
+    if (files.length === 0) {
+      list.innerHTML =
+        '<div class="empty"><strong>No files uploaded yet</strong>' +
+        "Choose a file above to upload your first document.</div>";
+      return;
+    }
+    list.innerHTML = files.map(f => {
+      const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+      return (
+        '<div class="file-item">' +
+          '<div class="file-icon">' + esc(ext.replace(".","").slice(0,4).toUpperCase()) + "</div>" +
+          '<div class="file-meta">' +
+            "<strong>" + esc(f.name) + "</strong>" +
+            "<span>" + esc(f.type) + " · " + esc(fmtBytes(f.size)) + " · " + esc(fmtDate(f.date)) + "</span>" +
+          "</div>" +
+          '<button class="btn btn-ghost btn-sm" data-remove="' + esc(f.id) + '" type="button">Remove</button>' +
+        "</div>"
+      );
+    }).join("");
+
+    $$("[data-remove]", list).forEach(btn => {
+      btn.addEventListener("click", () => {
+        confirmDialog({
+          title: "Remove file?",
+          bodyHTML: "<p>This will remove the file record from your demo account.</p>",
+          okLabel: "Remove",
+          okClass: "btn-danger",
+          onOk: () => {
+            const remaining = getFiles().filter(f => f.id !== btn.dataset.remove);
+            setFiles(remaining);
+            renderFiles();
+            renderDashboard();
+            toast("File removed.", "success");
+          }
+        });
+      });
+    });
+  }
+
+  /* ============================================================
+     REPORT PROBLEM
+     ============================================================ */
+  const reportForm = $("#reportForm");
+
+  reportForm.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const title = $("#repTitle").value.trim();
+    const page  = $("#repPage").value.trim();
+    const sev   = $("#repSeverity").value;
+    const desc  = $("#repDesc").value.trim();
+    const shot  = $("#repShot").files && $("#repShot").files[0];
+
+    let ok = true;
+    ok = setFieldError("repTitleField","repTitleErr",
+      !title ? "Please add a problem title." : "") && ok;
+    ok = setFieldError("repPageField","repPageErr",
+      !page ? "Please specify the page or feature." : "") && ok;
+    ok = setFieldError("repSevField","repSevErr",
+      !sev ? "Please choose a severity." : "") && ok;
+    ok = setFieldError("repDescField","repDescErr",
+      !desc ? "Please describe the problem." :
+      desc.length < 10 ? "Please provide a bit more detail." : "") && ok;
+
+    if (!ok) {
+      toast("Please complete all required fields.", "error");
+      return;
+    }
+
+    const id = nextBugId();
+    const all = getReports();
+    all.push({
+      id,
+      user: state.user.username,
+      title, page, severity: sev, description: desc,
+      screenshot: shot ? shot.name : null,
+      status: "Received",
+      createdAt: nowISO()
+    });
+    setReports(all);
+
+    reportForm.reset();
+    $$("#reportForm .field").forEach(f => f.classList.remove("invalid"));
+    $$("#reportForm .err").forEach(e => e.textContent = "");
+    renderReports();
+
+    toast("Problem report submitted successfully!", "success",
+          "Your report ID is " + id + ".");
+  });
+
+  function renderReports() {
+    const reports = myReports().slice().sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    $("#reportCount").textContent = reports.length + (reports.length === 1 ? " report" : " reports");
+
+    const list = $("#reportList");
+    if (reports.length === 0) {
+      list.innerHTML =
+        '<div class="empty"><strong>No reports yet</strong>' +
+        "Use the form above to send your first problem report.</div>";
+      return;
+    }
+
+    list.innerHTML =
+      '<div class="table-wrap"><table><thead><tr>' +
+        "<th>Report ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Date</th>" +
+      "</tr></thead><tbody>" +
+        reports.map(r =>
+          "<tr>" +
+            "<td><code>" + esc(r.id) + "</code></td>" +
+            "<td>" + esc(r.title) + "</td>" +
+            '<td><span class="priority ' + (r.severity === "High" ? "high" : r.severity === "Low" ? "low" : "") + '">' +
+              esc(r.severity) + "</span></td>" +
+            "<td>" + statusPill(r.status) + "</td>" +
+            "<td>" + esc(fmtDate(r.createdAt)) + "</td>" +
+          "</tr>"
+        ).join("") +
+      "</tbody></table></div>";
+  }
+
+  /* ============================================================
+     FAQ
+     ============================================================ */
+  const FAQS = [
+    {
+      q: "How do I create an account?",
+      a: "Open the Create Account page from the header or the Log In screen. Fill in your Full Name, Username, Email, and Password (twice), then click Create Account. If the username or email is already in use you will see a message asking you to choose another."
+    },
+    {
+      q: "How do I log in?",
+      a: "Open the Log In page, enter the email address or username you registered with, and your password. Tick \u201CRemember me\u201D to stay signed in on this browser. If the details are wrong, you will see \u201CInvalid username/email or password.\u201D"
+    },
+    {
+      q: "How do I submit a request?",
+      a: "Go to Requests, click \u201C+ New Request\u201D, fill in the title, category, priority, and description, then click Submit Request. You will be asked to review your request before it is sent, and you will receive a Request ID like REQ-0001."
+    },
+    {
+      q: "How do I check my request status?",
+      a: "Open the Requests page to see every request you have submitted along with its current status. Click a request to open it, or use \u201CView\u201D in the list to see the full details and status timeline."
+    },
+    {
+      q: "How do I upload a file?",
+      a: "Open Upload Files, click the \u201CChoose File\u201D area to select a document (PDF, JPG, PNG, DOC, or DOCX up to 5 MB), confirm the preview, and click Upload File. Uploaded files appear in the list below, where you can also remove them."
+    },
+    {
+      q: "What should I do if something is not working?",
+      a: "Open the Report a Problem page and describe what happened, which page or feature was affected, how serious it is, and any steps that caused the issue. Do not include passwords or other sensitive information in the report."
+    }
+  ];
+
+  function renderFaqs() {
+    $("#faqList").innerHTML = FAQS.map((f, i) =>
+      '<div class="faq-item">' +
+        '<button class="faq-btn" type="button" aria-expanded="false" aria-controls="faq-p-' + i + '">' +
+          esc(f.q) +
+        "</button>" +
+        '<div class="faq-panel" id="faq-p-' + i + '" hidden>' +
+          "<p>" + esc(f.a) + "</p>" +
+        "</div>" +
+      "</div>"
+    ).join("");
+
+    $$(".faq-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const item = btn.parentElement;
+        const panel = item.querySelector(".faq-panel");
+        const open = item.classList.toggle("is-open");
+        btn.setAttribute("aria-expanded", String(open));
+        panel.hidden = !open;
+      });
+    });
+  }
+
+  /* ============================================================
+     CONFIRM / REVIEW MODAL
+     ============================================================ */
+  const confirmModal = $("#confirmModal");
+  const confirmBody  = $("#confirmBody");
+  const confirmOk    = $("#confirmOk");
+  const confirmCancel = $("#confirmCancel");
+  const confirmTitle = $("#confirmTitle");
+  let confirmAction = null;
+  let lastFocused = null;
+
+  function confirmDialog({ title, bodyHTML, okLabel, okClass, onOk }) {
+    confirmTitle.textContent = title;
+    confirmBody.innerHTML = bodyHTML;
+    confirmOk.textContent = okLabel || "Confirm";
+    confirmOk.className = "btn " + (okClass || "btn-primary");
+    confirmAction = onOk || null;
+
+    lastFocused = document.activeElement;
+    confirmModal.classList.remove("hidden");
+    document.body.classList.add("modal-open");
+    setTimeout(() => confirmOk.focus(), 30);
+  }
+
+  function closeConfirm() {
+    confirmModal.classList.add("hidden");
+    document.body.classList.remove("modal-open");
+    confirmAction = null;
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+
+  confirmOk.addEventListener("click", () => {
+    const fn = confirmAction;
+    closeConfirm();
+    if (typeof fn === "function") fn();
+  });
+  confirmCancel.addEventListener("click", closeConfirm);
+  confirmModal.addEventListener("click", e => {
+    if (e.target.hasAttribute("data-modal-close")) closeConfirm();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !confirmModal.classList.contains("hidden")) closeConfirm();
+  });
+
+  /* ============================================================
+     MANUAL TESTING TOOLS
+     ============================================================ */
+  const CHECKLIST = [
+    { key: "register",       label: "Register a new account",       href: "#/register" },
+    { key: "login",          label: "Log in",                        href: "#/login" },
+    { key: "dashboard",      label: "View Dashboard",                href: "#/dashboard" },
+    { key: "profile",        label: "Edit Profile",                  href: "#/profile" },
+    { key: "submit-request", label: "Submit Request",                href: "#/requests" },
+    { key: "view-request",   label: "View Request Details",          href: "#/requests" },
+    { key: "status",         label: "Change Request Status",         href: "#/requests" },
+    { key: "upload",         label: "Upload File",                   href: "#/upload" },
+    { key: "view-file",      label: "View Uploaded File",            href: "#/upload" },
+    { key: "report",         label: "Report Problem",                href: "#/report" },
+    { key: "faq",            label: "View FAQ",                      href: "#/faq" },
+    { key: "support",        label: "Contact Support",               href: "#/support" },
+    { key: "logout",         label: "Log Out",                       href: "#/logout" },
+    { key: "reset",          label: "Reset Demo Data",               href: "#" }
+  ];
+
+  function renderChecklist() {
+    const saved = store.get("checklist", {});
+    const grid = $("#toolsGrid");
+    grid.innerHTML = CHECKLIST.map(item => {
+      const checked = saved[item.key] ? " checked" : "";
+      const linkHTML = item.key === "reset"
+        ? '<a href="#" data-tool="reset">Open</a>'
+        : '<a href="' + item.href + '">Open</a>';
+      return (
+        '<label class="tool-item">' +
+          '<input type="checkbox" data-tool-key="' + item.key + '"' + checked + ">" +
+          "<span>" + esc(item.label) + "</span>" +
+          linkHTML +
+        "</label>"
+      );
+    }).join("");
+
+    $$("[data-tool-key]", grid).forEach(cb => {
+      cb.addEventListener("change", () => {
+        const s = store.get("checklist", {});
+        if (cb.checked) s[cb.dataset.toolKey] = true;
+        else delete s[cb.dataset.toolKey];
+        store.set("checklist", s);
+      });
+    });
+
+    $$('[data-tool="reset"]', grid).forEach(a => {
+      a.addEventListener("click", e => { e.preventDefault(); askReset(); });
+    });
+  }
+
+  /* ============================================================
+     RESET DEMO DATA
+     ============================================================ */
+  function askReset() {
+    confirmDialog({
+      title: "Reset Demo Data?",
+      bodyHTML: "<p>This will delete all demo accounts, requests, uploaded file records, and reports from this browser.</p>" +
+                "<p style='color:var(--danger);font-weight:700;'>This cannot be undone.</p>",
+      okLabel: "Reset",
+      okClass: "btn-danger",
+      onOk: doReset
+    });
+  }
+
+  function doReset() {
+    ["users","requests","files","reports","counters","checklist"].forEach(k => store.del(k));
+    clearSession();
+    state.user = null;
+    renderChecklist();
+    renderNav();
+    toast("Demo data has been reset.", "success");
+    location.hash = "#/login";
+  }
+
+  $("#resetDemoBtn").addEventListener("click", askReset);
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  function init() {
+    $("#year").textContent = new Date().getFullYear();
+    state.user = loadSession();
+    renderChecklist();
+    renderNav();
+    route();
+  }
+  init();
+
+})();
+</script>
+</body>
+</html>
